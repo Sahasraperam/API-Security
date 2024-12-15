@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacker API Security Scanner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .card {
+            background-color: #1a1a1a;
+            border: 1px solid #00ff00;
+        }
+        .form-control, .form-select {
+            background-color: #2a2a2a;
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #2a2a2a;
+            border-color: #00ff00;
+            box-shadow: 0 0 0 0.25rem rgba(0, 255, 0, 0.25);
+            color: #00ff00;
+        }
+        .btn-primary {
+            background-color: #00ff00;
+            border-color: #00ff00;
+            color: #000;
+        }
+        .btn-primary:hover {
+            background-color: #00cc00;
+            border-color: #00cc00;
+            color: #000;
+        }
+        .result-card {
+            transition: all 0.3s ease;
+            border: 1px solid #00ff00;
+            background-color: #1a1a1a;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+        #console {
+            background-color: #000;
+            border: 1px solid #00ff00;
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .blinking {
+            animation: blinker 1s linear infinite;
+        }
+        @keyframes blinker {
+            50% {
+                opacity: 0;
+            }
+        }
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix" class="matrix-bg"></canvas>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4 blinking">Hacker API Security Scanner</h1>
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="url" class="form-label" style="color: whitesmoke;">Target API URL</label>
+                        <input type="url" class="form-control" id="url" name="url" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="auth_type" class="form-label" style="color: whitesmoke;">Authentication Type</label>
+                        <select class="form-select" id="auth_type" name="auth_type">
+                            <option value="">None</option>
+                            <option value="basic">Basic Auth</option>
+                            <option value="bearer">Bearer Token</option>
+                        </select>
+                    </div>
+                    <div id="authFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="username" class="form-label" style="color: whitesmoke;">Username</label>
+                            <input type="text" class="form-control" id="username" name="username">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label" style="color: whitesmoke;" >Password/Token</label>
+                            <input type="password" class="form-control" id="password" name="password">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Initiate Scan</button>
+                </form>
+            </div>
+        </div>
+        <div id="console" class="mb-4"></div>
+        {% if error %}
+        <div class="alert alert-danger mt-4" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+        {% if results %}
+        <div class="mt-4">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card result-card">
+                        <div class="card-body">
+                            <h5 class="card-title" style="color: whitesmoke;">CORS Vulnerability</h5>
+                            <p class="card-text" style="color: #00ff00" >{{ results.cors }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card result-card">
+                        <div class="card-body">
+                            <h5 class="card-title" style="color: whitesmoke;" >SSL Security</h5>
+                            <p class="card-text" style="color: #00ff00" >{{ results.ssl }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card result-card">
+                        <div class="card-body">
+                            <h5 class="card-title" style="color: whitesmoke;">Authentication Test</h5>
+                            <p class="card-text" style="color: #00ff00">{{ results.auth }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% if random_data %}
+        <div class="mt-4">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card result-card">
+                        <div class="card-body">
+                            <h5 class="card-title class" style="color: whitesmoke;" >Network Analysis</h5>
+                            <p style="color: #00ff00"> Detected IP: {{ random_data.ip_address }}</p>
+                            <p style="color: #00ff00">Open Ports: {{ random_data.port_scan|join(', ') }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card result-card">
+                        <div class="card-body">
+                            <h5 class="card-title" style="color: whitesmoke;" >Encryption Data</h5>
+                            <p style="color: #00ff00">Encryption Key: {{ random_data.encryption }}</p>
+                            <p style="color: #00ff00">Packets Analyzed: {{ random_data.packets }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('auth_type').addEventListener('change', function() {
+            document.getElementById('authFields').style.display = this.value ? 'block' : 'none';
+        });
+
+        // Console animation
+        const consoleElement = document.getElementById('console');
+        const consoleMessages = [
+            "Initializing security scan...",
+            "Checking for vulnerabilities...",
+            "Analyzing network traffic...",
+            "Detecting open ports...",
+            "Probing authentication mechanisms...",
+            "Scanning for potential exploits...",
+            "Assessing encryption strength...",
+            "Evaluating API endpoints...",
+            "Identifying security misconfigurations...",
+            "Compiling scan results..."
+        ];
+
+        function typeWriter(text, i, fnCallback) {
+            if (i < text.length) {
+                consoleElement.innerHTML = consoleElement.innerHTML.slice(0, -1) + text.charAt(i) + "_";
+                setTimeout(function() {
+                    typeWriter(text, i + 1, fnCallback)
+                }, 50);
+            } else if (typeof fnCallback == 'function') {
+                setTimeout(fnCallback, 700);
+            }
+        }
+
+        function startTextAnimation(i) {
+            if (i < consoleMessages.length) {
+                typeWriter(consoleMessages[i] + "<br/>", 0, function() {
+                    startTextAnimation(i + 1);
+                });
+            }
+        }
+
+        startTextAnimation(0);
+
+        // Matrix background
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+
+        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const nums = '0123456789';
+
+        const alphabet = katakana + latin + nums;
+
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+
+        const rainDrops = [];
+
+        for (let x = 0; x < columns; x++) {
+            rainDrops[x] = 1;
+        }
+
+        const draw = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#0F0';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
+                }
+                rainDrops[i]++;
+            }
+        };
+
+        setInterval(draw, 30);
+    </script>
+</body>
+</html>
